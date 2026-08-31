@@ -1,0 +1,1418 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>通用爬虫平台</title>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background: #f0f2f5; color: #333; }
+.container { max-width: 1400px; margin: 0 auto; padding: 20px; }
+.header { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: #fff; padding: 20px 30px; border-radius: 8px; margin-bottom: 20px; }
+.header h1 { font-size: 22px; margin-bottom: 5px; }
+.header p { font-size: 13px; opacity: 0.9; }
+.tabs { display: flex; gap: 4px; margin-bottom: 20px; background: #fff; padding: 6px; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.06); }
+.tab { padding: 10px 20px; cursor: pointer; border-radius: 6px; font-size: 14px; color: #666; transition: all .2s; }
+.tab:hover { background: #f0f0f0; }
+.tab.active { background: #667eea; color: #fff; }
+.card { background: #fff; border-radius: 8px; padding: 20px; margin-bottom: 16px; box-shadow: 0 2px 8px rgba(0,0,0,0.06); }
+.card h3 { font-size: 16px; margin-bottom: 16px; color: #333; border-bottom: 1px solid #f0f0f0; padding-bottom: 10px; }
+.form-row { display: flex; gap: 12px; margin-bottom: 12px; flex-wrap: wrap; }
+.form-group { flex: 1; min-width: 150px; }
+.form-group label { display: block; font-size: 12px; color: #666; margin-bottom: 4px; }
+.form-group input, .form-group select, .form-group textarea { width: 100%; padding: 8px 10px; border: 1px solid #d9d9d9; border-radius: 4px; font-size: 13px; }
+.form-group textarea { resize: vertical; font-family: inherit; }
+.form-group input:focus, .form-group select:focus, .form-group textarea:focus { border-color: #667eea; outline: none; }
+.help-text { font-size: 11px; color: #999; margin-top: 3px; line-height: 1.4; }
+.btn { padding: 8px 18px; border: none; border-radius: 4px; cursor: pointer; font-size: 13px; transition: all .2s; }
+.btn-primary { background: #667eea; color: #fff; }
+.btn-primary:hover { background: #5568d3; }
+.btn-success { background: #52c41a; color: #fff; }
+.btn-success:hover { background: #49b117; }
+.btn-danger { background: #ff4d4f; color: #fff; }
+.btn-danger:hover { background: #ff7875; }
+.btn-warning { background: #faad14; color: #fff; }
+.btn-warning:hover { background: #e09d12; }
+.btn:disabled { opacity: .5; cursor: not-allowed; }
+table { width: 100%; border-collapse: collapse; font-size: 13px; }
+th, td { padding: 10px 12px; text-align: left; border-bottom: 1px solid #f0f0f0; }
+th { background: #fafafa; color: #666; font-weight: 600; }
+tr:hover { background: #fafafa; }
+.tag { display: inline-block; padding: 2px 8px; border-radius: 10px; font-size: 11px; }
+.tag-success { background: #f6ffed; color: #52c41a; border: 1px solid #b7eb8f; }
+.tag-warning { background: #fffbe6; color: #faad14; border: 1px solid #ffe58f; }
+.tag-info { background: #e6f7ff; color: #1890ff; border: 1px solid #91d5ff; }
+.alert { padding: 12px 16px; border-radius: 4px; margin-bottom: 12px; font-size: 13px; }
+.alert-success { background: #f6ffed; border: 1px solid #b7eb8f; color: #389e0d; }
+.alert-error { background: #fff2f0; border: 1px solid #ffccc7; color: #cf1322; }
+.alert-info { background: #e6f7ff; border: 1px solid #91d5ff; color: #0050b3; }
+.alert-warning { background: #fffbe6; border: 1px solid #ffe58f; color: #d48806; }
+.empty { text-align: center; color: #999; padding: 40px; font-size: 14px; }
+.log-box { background: #1e1e1e; color: #d4d4d4; padding: 12px; border-radius: 4px; font-family: monospace; font-size: 12px; height: 200px; overflow-y: auto; }
+.log-box div { margin-bottom: 2px; }
+.captcha-box { display: flex; gap: 12px; align-items: center; margin-bottom: 12px; }
+.captcha-box img { border: 1px solid #d9d9d9; border-radius: 4px; height: 40px; }
+.table-scroll { overflow-x: auto; }
+.data-table { font-size: 12px; }
+.data-table th, .data-table td { padding: 6px 8px; white-space: nowrap; }
+.modal-mask { display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.5); z-index: 1000; align-items: center; justify-content: center; }
+.modal-mask.show { display: flex; }
+.modal { background: #fff; border-radius: 8px; padding: 24px; width: 700px; max-height: 90vh; overflow-y: auto; }
+.modal h3 { margin-bottom: 16px; }
+.sniffer-request { border: 1px solid #e8e8e8; border-radius: 4px; padding: 10px; margin-bottom: 8px; cursor: pointer; transition: all .2s; }
+.sniffer-request:hover { border-color: #667eea; background: #f9f9ff; }
+.sniffer-request.selected { border-color: #667eea; background: #f0f2ff; }
+.sniffer-request .method { display: inline-block; padding: 2px 6px; border-radius: 3px; font-size: 11px; font-weight: bold; margin-right: 8px; }
+.method-get { background: #e6f7ff; color: #1890ff; }
+.method-post { background: #f6ffed; color: #52c41a; }
+.sniffer-request .url { font-size: 12px; color: #666; word-break: break-all; }
+</style>
+</head>
+<body>
+<div class="container">
+  <div class="header" style="display: flex; justify-content: space-between; align-items: center;">
+    <div>
+      <h1>通用爬虫平台</h1>
+      <p>支持多厂商配置 · 自动抓包生成配置 · API直接抓取数据</p>
+    </div>
+    <button class="btn btn-success" onclick="window.open('http://localhost:8080/dashboard', '_self')" style="font-size: 14px; padding: 10px 20px;">
+      ← 返回运营平台
+    </button>
+  </div>
+
+  <div class="tabs">
+    <div class="tab active" onclick="switchTab('vendors')">厂商管理</div>
+    <div class="tab" onclick="switchTab('sniffer')">自动抓包</div>
+    <div class="tab" onclick="switchTab('sources')">来源管理</div>
+    <div class="tab" onclick="switchTab('login')">登录</div>
+    <div class="tab" onclick="switchTab('fetch')">抓取数据</div>
+    <div class="tab" onclick="switchTab('data')">数据查看</div>
+    <div class="tab" onclick="switchTab('update')">更新管理</div>
+  </div>
+
+  <!-- ==================== 厂商管理 ==================== -->
+  <div id="tab-vendors" class="tab-content">
+    <div class="card">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;">
+        <h3 style="margin:0;">厂商列表</h3>
+        <button class="btn btn-primary" onclick="openVendorModal('添加厂商')">+ 添加厂商</button>
+      </div>
+      <div id="vendor-list"></div>
+    </div>
+  </div>
+
+  <!-- 厂商编辑弹窗 -->
+  <div id="vendor-modal" class="modal-mask">
+    <div class="modal">
+      <h3 id="vendor-modal-title">添加厂商</h3>
+      <input type="hidden" id="vendor-id">
+      <div class="form-row">
+        <div class="form-group"><label>厂商名称</label><input id="v-name" placeholder="如：熊猫游、游梦"></div>
+        <div class="form-group"><label>登录页面URL</label><input id="v-login-url" placeholder="如：https://xxx.com/login"></div>
+      </div>
+      <div class="form-row">
+        <div class="form-group"><label>API基地址</label><input id="v-api-base" placeholder="如：https://api.xxx.com"><div class="help-text">登录和数据接口的基础URL，F12→Network看请求URL的域名部分</div></div>
+      </div>
+      <div class="form-row">
+        <div class="form-group"><label>登录接口路径</label><input id="v-login-path" placeholder="如：/api/auth/login"></div>
+        <div class="form-group"><label>请求方式</label><select id="v-login-method"><option value="POST">POST</option><option value="GET">GET</option></select></div>
+        <div class="form-group"><label>请求体格式</label><select id="v-login-content"><option value="json">JSON</option><option value="form">表单</option><option value="query">URL参数</option></select></div>
+      </div>
+      <div class="form-row">
+        <div class="form-group"><label>账号字段名</label><input id="v-user-field" placeholder="如：username / userName"></div>
+        <div class="form-group"><label>密码字段名</label><input id="v-pwd-field" placeholder="如：password"></div>
+        <div class="form-group"><label>token响应路径</label><input id="v-token-path" placeholder="如：data.accessToken"></div>
+      </div>
+      <div class="form-row">
+        <div class="form-group"><label>认证请求头</label><input id="v-auth-header" placeholder="如：access-token / Authorization"></div>
+        <div class="form-group"><label>认证前缀</label><input id="v-auth-prefix" placeholder="如：Bearer （留空则无前缀）"></div>
+        <div class="form-group"><label>有验证码</label><select id="v-has-captcha"><option value="false">无</option><option value="true">有</option></select></div>
+      </div>
+      <div class="form-row">
+        <div class="form-group" style="flex:1"><label>数据接口配置（JSON格式）</label><textarea id="v-data-apis" rows="6" placeholder='{"玩家账号":{"path":"/api/xxx/list","method":"GET","page_param":"pageNum","data_path":"rows","total_path":"total"}}'></textarea><div class="help-text">每个数据类型的API配置，可先用"自动抓包"生成后再修改</div></div>
+      </div>
+      <div style="display:flex;gap:10px;margin-top:16px;">
+        <button class="btn btn-primary" onclick="saveVendor()">保存</button>
+        <button class="btn" onclick="closeVendorModal()">取消</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ==================== 自动抓包 ==================== -->
+  <div id="tab-sniffer" class="tab-content" style="display:none">
+    <div class="card">
+      <h3>自动抓包生成厂商配置</h3>
+      <div class="alert alert-info">填写厂商信息和要抓取的数据页面，点击"开始抓包"。工具会自动打开浏览器，你在浏览器里手动登录（处理验证码），登录成功后自动访问数据页面并捕获接口，最后一键生成厂商配置（同名则更新）。</div>
+      <div class="form-row">
+        <div class="form-group"><label>选择厂商</label>
+          <select id="sn-vendor-id" onchange="onSnifferVendorChange()">
+            <option value="">请选择厂商（选择后自动填充登录页URL）</option>
+            <option value="new">+ 新增厂商...</option>
+          </select>
+        </div>
+        <div class="form-group" id="sn-new-name-group" style="display:none"><label>新厂商名称</label><input id="sn-name" placeholder="输入新厂商名称"></div>
+        <div class="form-group"><label>登录页面URL</label><input id="sn-login-url" placeholder="如：https://xxx.com/login"></div>
+      </div>
+      <div class="form-row">
+        <div class="form-group"><label>账号</label><input id="sn-username" placeholder="厂商后台账号"></div>
+        <div class="form-group"><label>密码</label><input id="sn-password" type="password" placeholder="厂商后台密码"></div>
+      </div>
+      <div style="margin-top:8px;">
+        <label style="font-weight:bold;margin-bottom:8px;display:block;">要抓取的数据页面（登录成功后自动访问）</label>
+        <div id="sn-data-pages">
+          <div class="form-row" style="margin-bottom:8px;">
+            <div class="form-group" style="flex:0 0 150px;"><input class="sn-page-name" placeholder="数据名称" value="玩家账号"></div>
+            <div class="form-group" style="flex:1;"><input class="sn-page-url" placeholder="玩家账号页面URL，如：https://xxx.com/cps_info/game_user_list"></div>
+            <div class="form-group" style="flex:0;"><button class="btn btn-danger" onclick="this.parentElement.parentElement.remove()">删除</button></div>
+          </div>
+          <div class="form-row" style="margin-bottom:8px;">
+            <div class="form-group" style="flex:0 0 150px;"><input class="sn-page-name" placeholder="数据名称" value="充值明细"></div>
+            <div class="form-group" style="flex:1;"><input class="sn-page-url" placeholder="充值明细页面URL，如：https://xxx.com/cps_info/pay_list"></div>
+            <div class="form-group" style="flex:0;"><button class="btn btn-danger" onclick="this.parentElement.parentElement.remove()">删除</button></div>
+          </div>
+        </div>
+        <button class="btn" onclick="addDataPage()">+ 添加数据页面</button>
+      </div>
+      <div style="margin-top:16px;display:flex;gap:8px;">
+        <button class="btn btn-primary" id="sn-start-btn" onclick="snifferStart()">开始抓包</button>
+        <button class="btn btn-danger" id="sn-stop-btn" style="display:none" onclick="snifferStop()">停止抓包</button>
+      </div>
+    </div>
+    <div class="card" id="sniffer-log-card" style="display:none">
+      <h3>抓包状态和日志</h3>
+      <div id="sniffer-status"></div>
+      <div style="margin-top:12px;">
+        <div style="font-weight:bold;margin-bottom:6px;">实时日志：</div>
+        <div id="sniffer-log" style="background:#1e1e1e;color:#d4d4d4;padding:12px;border-radius:6px;font-family:monospace;font-size:12px;max-height:300px;overflow-y:auto;white-space:pre-wrap;"></div>
+      </div>
+    </div>
+    <div class="card" id="sniffer-result-card" style="display:none">
+      <h3>抓包结果</h3>
+      <div id="sniffer-login-info"></div>
+      <div style="margin-top:16px;display:flex;gap:10px;flex-wrap:wrap;">
+        <button class="btn btn-primary" onclick="snifferGenerate()">生成厂商配置（自动捕获数据接口并保存）</button>
+        <button class="btn" onclick="snifferShowRequests()">查看捕获的请求</button>
+      </div>
+      <div id="sniffer-data-result" style="margin-top:16px;"></div>
+      <div id="sniffer-requests" style="margin-top:16px;"></div>
+    </div>
+  </div>
+
+  <!-- ==================== 来源管理 ==================== -->
+  <div id="tab-sources" class="tab-content" style="display:none">
+    <div class="card">
+      <h3>新增来源</h3>
+      <div class="form-row">
+        <div class="form-group"><label>来源名称</label><input id="src-name" placeholder="默认=厂商名称，可修改"></div>
+        <div class="form-group"><label>所属厂商</label><select id="src-vendor" onchange="onVendorChange(this)"><option value="">请选择厂商</option></select></div>
+        <div class="form-group"><label>登录账号</label><input id="src-username" placeholder="厂商后台账号"></div>
+        <div class="form-group"><label>登录密码</label><input id="src-password" type="password" placeholder="厂商后台密码"></div>
+        <div class="form-group" style="flex:0;display:flex;align-items:flex-end;"><button class="btn btn-primary" onclick="addSource()">添加来源</button></div>
+      </div>
+      <div class="help-text">选择所属厂商后，来源名称自动填充为厂商名称（可修改），并自动继承厂商的API配置</div>
+    </div>
+    <div class="card">
+      <h3>来源列表</h3>
+      <div id="source-list"></div>
+    </div>
+  </div>
+
+  <!-- 来源编辑弹窗 -->
+  <div id="source-modal" class="modal-mask">
+    <div class="modal">
+      <h3>编辑来源</h3>
+      <input type="hidden" id="edit-source-id">
+      <div class="form-row">
+        <div class="form-group"><label>来源名称</label><input id="edit-name"></div>
+        <div class="form-group"><label>所属厂商</label><select id="edit-vendor"><option value="">不指定（用自定义配置）</option></select></div>
+      </div>
+      <div class="form-row">
+        <div class="form-group"><label>登录账号</label><input id="edit-username"></div>
+        <div class="form-group"><label>登录密码</label><input id="edit-password" type="password"></div>
+      </div>
+      <div style="display:flex;gap:10px;margin-top:16px;">
+        <button class="btn btn-primary" onclick="saveSourceEdit()">保存</button>
+        <button class="btn" onclick="closeSourceModal()">取消</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ==================== 登录 ==================== -->
+  <div id="tab-login" class="tab-content" style="display:none">
+    <div class="card">
+      <h3>选择来源并登录</h3>
+      <div class="form-row">
+        <div class="form-group"><label>选择来源</label><select id="login-source" onchange="loadLoginStatus()"></select></div>
+      </div>
+      <div id="login-status"></div>
+      <div id="captcha-area" style="display:none">
+        <div class="captcha-box">
+          <img id="captcha-img" alt="验证码">
+          <div style="flex:1"><input id="captcha-input" placeholder="输入图中4位验证码" style="width:200px;padding:8px;border:1px solid #d9d9d9;border-radius:4px"></div>
+          <button class="btn btn-primary" onclick="doLogin()">确认登录</button>
+          <button class="btn" onclick="getCaptcha()">换一张</button>
+        </div>
+      </div>
+      <div id="login-result"></div>
+    </div>
+    <div class="card">
+      <h3>操作日志</h3>
+      <div class="log-box" id="log-box"><div>等待操作...</div></div>
+    </div>
+  </div>
+
+  <!-- ==================== 抓取数据 ==================== -->
+  <div id="tab-fetch" class="tab-content" style="display:none">
+    <div class="card">
+      <h3>抓取配置</h3>
+      <div class="form-row">
+        <div class="form-group"><label>选择来源</label><select id="fetch-source" onchange="loadFetchApis()"></select></div>
+        <div class="form-group"><label>数据类型</label><select id="fetch-api"></select></div>
+      </div>
+      <div class="form-row">
+        <div class="form-group"><label>开始日期</label><input id="fetch-date-start" type="date"><div class="help-text">要爬取的数据的起始日期</div></div>
+        <div class="form-group"><label>结束日期</label><input id="fetch-date-end" type="date"><div class="help-text">和开始日期必须同时选或都不选</div></div>
+        <div class="form-group"><label>搜索账号（可选）</label><input id="fetch-user" placeholder="玩家登录名，留空=全部"></div>
+        <div class="form-group"><label>最大翻页数</label><input id="fetch-pages" type="number" value="20" min="1" max="100"></div>
+      </div>
+      <div class="form-row">
+        <div class="form-group"><label>任务名称</label><input id="fetch-taskname" placeholder="如：8月角色信息"></div>
+        <div class="form-group" style="flex:0;display:flex;align-items:flex-end;"><button class="btn btn-success" onclick="doFetch()">开始抓取</button></div>
+      </div>
+    </div>
+    <div class="card">
+      <h3>抓取结果</h3>
+      <div id="fetch-result"><div class="empty">尚未抓取</div></div>
+    </div>
+  </div>
+
+  <!-- ==================== 数据查看（表头中文化） ==================== -->
+  <div id="tab-data" class="tab-content" style="display:none">
+    <div class="card">
+      <h3>查询条件</h3>
+      <div class="form-row">
+        <div class="form-group"><label>来源</label><select id="data-source" onchange="loadCrawlerData()"></select></div>
+        <div class="form-group"><label>数据类型</label>
+          <select id="data-type" onchange="loadCrawlerData()">
+            <option value="player">玩家账号</option>
+            <option value="recharge">充值明细</option>
+            <option value="role">角色信息</option>
+          </select>
+        </div>
+        <div class="form-group"><label>开始日期</label><input type="date" id="data-start" onchange="loadCrawlerData()"></div>
+        <div class="form-group"><label>结束日期</label><input type="date" id="data-end" onchange="loadCrawlerData()"></div>
+      </div>
+      <div class="form-row">
+        <div class="form-group"><label>关键字搜索</label><input id="data-keyword" placeholder="输入关键字搜索" onkeypress="if(event.key==='Enter')loadCrawlerData()"></div>
+        <div class="form-group"><label>每页条数</label>
+          <select id="data-page-size" onchange="loadCrawlerData()">
+            <option value="20">20条/页</option>
+            <option value="50">50条/页</option>
+            <option value="100">100条/页</option>
+          </select>
+        </div>
+        <div class="form-group" style="display:flex;align-items:flex-end;gap:8px;">
+          <button class="btn btn-primary" onclick="loadCrawlerData()">查询</button>
+          <button class="btn" onclick="exportCrawlerData()">导出Excel</button>
+        </div>
+      </div>
+      <div id="mysql-status" style="margin-top:8px;"></div>
+    </div>
+    <div class="card">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
+        <h3 style="margin:0;">数据列表（中文表头）</h3>
+        <span id="data-total" style="color:#666;font-size:13px;"></span>
+      </div>
+      <div class="table-scroll">
+        <table class="data-table" id="crawler-data-table">
+          <thead id="crawler-data-thead"></thead>
+          <tbody id="crawler-data-tbody"></tbody>
+        </table>
+      </div>
+      <div id="data-pagination" style="margin-top:12px;display:flex;justify-content:center;gap:8px;align-items:center;"></div>
+    </div>
+  </div>
+
+  <!-- ==================== 更新管理（智能更新策略） ==================== -->
+  <div id="tab-update" class="tab-content" style="display:none">
+    <div class="card">
+      <h3>更新策略说明</h3>
+      <div class="alert alert-info">
+        <strong>智能更新策略（防封禁）：</strong><br>
+        1. <strong>分级更新</strong>：玩家账号每天1次（凌晨2:00），充值明细每6小时1次（2/8/14/20点），角色信息每天1次（凌晨3:00）<br>
+        2. <strong>手动触发</strong>：点击"立即更新"按钮，冷却时间1小时，只爬最近24小时增量数据<br>
+        3. <strong>增量更新</strong>：只爬上次更新之后的新增数据，减少请求量80%以上<br>
+        4. <strong>请求限流</strong>：每次请求间隔3-5秒（随机），避免规律性被识别<br>
+        5. <strong>失败重试</strong>：失败后延迟30分钟重试，连续失败3次自动暂停<br>
+        6. <strong>智能降级</strong>：检测到429错误时自动限流2小时
+      </div>
+    </div>
+
+    <div class="card">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;">
+        <h3 style="margin:0;">定时任务状态</h3>
+        <div style="display:flex;gap:8px;">
+          <button class="btn btn-primary" onclick="startScheduler()">启动定时任务</button>
+          <button class="btn btn-danger" onclick="stopScheduler()">停止定时任务</button>
+          <button class="btn" onclick="loadUpdateStatus()">刷新</button>
+        </div>
+      </div>
+      <div id="scheduler-status"></div>
+      <div id="scheduled-jobs" style="margin-top:12px;"></div>
+    </div>
+
+    <div class="card">
+      <h3>来源更新状态</h3>
+      <div class="form-row">
+        <div class="form-group"><label>选择来源</label><select id="update-source" onchange="loadUpdateStatus()"><option value="">全部来源</option></select></div>
+      </div>
+      <div class="table-scroll" style="margin-top:12px;">
+        <table class="data-table" id="update-status-table">
+          <thead>
+            <tr>
+              <th>来源ID</th>
+              <th>数据类型</th>
+              <th>上次更新时间</th>
+              <th>下次自动更新</th>
+              <th>失败次数</th>
+              <th>状态</th>
+              <th>手动冷却</th>
+              <th>操作</th>
+            </tr>
+          </thead>
+          <tbody id="update-status-tbody"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+let currentVerkey = '';
+let currentVendorId = null;
+let snifferSession = null;
+
+// ==================== 通用工具 ====================
+async function api(url, method = 'GET', body = null) {
+  const opts = { method, headers: {} };
+  if (body) { opts.headers['Content-Type'] = 'application/json'; opts.body = JSON.stringify(body); }
+  const r = await fetch(url, opts);
+  return await r.json();
+}
+
+function switchTab(name) {
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('.tab-content').forEach(t => t.style.display = 'none');
+  event.target.classList.add('active');
+  document.getElementById('tab-' + name).style.display = 'block';
+  if (name === 'vendors') loadVendors();
+  if (name === 'sources') { loadSources(); loadVendorSelects(); }
+  if (name === 'login') loadLoginSources();
+  if (name === 'fetch') loadFetchSources();
+  if (name === 'data') loadDataSources();
+  if (name === 'sniffer') loadSnifferVendors();
+  if (name === 'update') { loadUpdateSources(); loadUpdateStatus(); }
+}
+
+function log(msg) {
+  const box = document.getElementById('log-box');
+  if (box) {
+    const div = document.createElement('div');
+    div.textContent = '[' + new Date().toLocaleTimeString() + '] ' + msg;
+    box.appendChild(div);
+    box.scrollTop = box.scrollHeight;
+  }
+}
+
+// ==================== 厂商管理 ====================
+async function loadVendors() {
+  const r = await api('/api/vendors');
+  const list = document.getElementById('vendor-list');
+  if (!r.vendors || r.vendors.length === 0) { list.innerHTML = '<div class="empty">暂无厂商，请先添加或使用自动抓包生成</div>'; return; }
+  let html = '<table><tr><th>ID</th><th>厂商名称</th><th>登录页</th><th>API基地址</th><th>数据类型</th><th>操作</th></tr>';
+  r.vendors.forEach(v => {
+    const apiCount = v.data_apis ? Object.keys(v.data_apis).length : 0;
+    html += '<tr><td>' + v.id + '</td><td>' + (v.name||'') + '</td>'
+      + '<td style="max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="' + (v.login_url||'') + '">' + (v.login_url||'') + '</td>'
+      + '<td style="max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="' + (v.api_base_url||'') + '">' + (v.api_base_url||'') + '</td>'
+      + '<td>' + apiCount + '种</td>'
+      + '<td><button class="btn" onclick="editVendor(' + v.id + ')">编辑</button> '
+      + '<button class="btn btn-danger" onclick="delVendor(' + v.id + ')">删除</button></td></tr>';
+  });
+  html += '</table>';
+  list.innerHTML = html;
+}
+
+function openVendorModal(title, vendor) {
+  document.getElementById('vendor-modal-title').textContent = title;
+  document.getElementById('vendor-id').value = vendor ? vendor.id : '';
+  document.getElementById('v-name').value = vendor ? (vendor.name||'') : '';
+  document.getElementById('v-login-url').value = vendor ? (vendor.login_url||'') : '';
+  document.getElementById('v-api-base').value = vendor ? (vendor.api_base_url||'') : '';
+  const lc = vendor && vendor.login_config ? vendor.login_config : {};
+  document.getElementById('v-login-path').value = lc.url || '';
+  document.getElementById('v-login-method').value = lc.method || 'POST';
+  document.getElementById('v-login-content').value = lc.content_type || 'json';
+  document.getElementById('v-user-field').value = lc.username_field || 'username';
+  document.getElementById('v-pwd-field').value = lc.password_field || 'password';
+  document.getElementById('v-token-path').value = lc.token_path || 'data.accessToken';
+  document.getElementById('v-auth-header').value = lc.auth_header || 'access-token';
+  document.getElementById('v-auth-prefix').value = lc.auth_prefix || '';
+  document.getElementById('v-has-captcha').value = lc.has_captcha ? 'true' : 'false';
+  document.getElementById('v-data-apis').value = vendor && vendor.data_apis ? JSON.stringify(vendor.data_apis, null, 2) : '';
+  document.getElementById('vendor-modal').classList.add('show');
+}
+
+function closeVendorModal() {
+  document.getElementById('vendor-modal').classList.remove('show');
+}
+
+async function saveVendor() {
+  const id = document.getElementById('vendor-id').value;
+  const data = {
+    name: document.getElementById('v-name').value.trim(),
+    login_url: document.getElementById('v-login-url').value.trim(),
+    api_base_url: document.getElementById('v-api-base').value.trim(),
+    login_config: {
+      method: document.getElementById('v-login-method').value,
+      url: document.getElementById('v-login-path').value.trim(),
+      content_type: document.getElementById('v-login-content').value,
+      username_field: document.getElementById('v-user-field').value.trim(),
+      password_field: document.getElementById('v-pwd-field').value.trim(),
+      token_path: document.getElementById('v-token-path').value.trim(),
+      auth_header: document.getElementById('v-auth-header').value.trim(),
+      auth_prefix: document.getElementById('v-auth-prefix').value,
+      has_captcha: document.getElementById('v-has-captcha').value === 'true',
+    },
+    data_apis: {},
+    remark: '',
+  };
+  const dataApisText = document.getElementById('v-data-apis').value.trim();
+  if (dataApisText) {
+    try { data.data_apis = JSON.parse(dataApisText); } catch(e) { alert('数据接口配置JSON格式错误: ' + e.message); return; }
+  }
+  if (!data.name) { alert('请填写厂商名称'); return; }
+  const url = id ? '/api/vendors/' + id : '/api/vendors';
+  const method = id ? 'PUT' : 'POST';
+  const r = await api(url, method, data);
+  if (r.success) { alert('保存成功'); closeVendorModal(); loadVendors(); }
+}
+
+async function editVendor(id) {
+  const r = await api('/api/vendors/' + id);
+  if (r.vendor) openVendorModal('编辑厂商', r.vendor);
+}
+
+async function delVendor(id) {
+  if (!confirm('确认删除该厂商？关联来源将变为无厂商状态')) return;
+  await api('/api/vendors/' + id, 'DELETE');
+  loadVendors();
+}
+
+// ==================== 自动抓包 ====================
+let snifferTimer = null;
+
+function addDataPage() {
+  const div = document.createElement('div');
+  div.className = 'form-row';
+  div.style.marginBottom = '8px';
+  div.innerHTML =
+    '<div class="form-group" style="flex:0 0 150px;"><input class="sn-page-name" placeholder="数据名称，如：充值记录"></div>' +
+    '<div class="form-group" style="flex:1;"><input class="sn-page-url" placeholder="页面URL"></div>' +
+    '<div class="form-group" style="flex:0;"><button class="btn btn-danger" onclick="this.parentElement.parentElement.remove()">删除</button></div>';
+  document.getElementById('sn-data-pages').appendChild(div);
+}
+
+function collectDataPages() {
+  const names = document.querySelectorAll('.sn-page-name');
+  const urls = document.querySelectorAll('.sn-page-url');
+  const pages = [];
+  for (let i = 0; i < names.length; i++) {
+    const name = names[i].value.trim();
+    const url = urls[i].value.trim();
+    if (name && url) pages.push({ name, url });
+  }
+  return pages;
+}
+
+function appendLog(msg) {
+  const logDiv = document.getElementById('sniffer-log');
+  const time = new Date().toLocaleTimeString();
+  logDiv.innerHTML += '[' + time + '] ' + msg + '\n';
+  logDiv.scrollTop = logDiv.scrollHeight;
+}
+
+async function loadSnifferVendors() {
+  const r = await api('/api/vendors');
+  const sel = document.getElementById('sn-vendor-id');
+  const current = sel.value;
+  sel.innerHTML = '<option value="">请选择厂商（选择后自动填充登录页URL）</option><option value="new">+ 新增厂商...</option>';
+  (r.vendors || []).forEach(v => {
+    const opt = document.createElement('option');
+    opt.value = v.id;
+    opt.textContent = v.name;
+    sel.appendChild(opt);
+  });
+  sel.value = current;
+}
+
+function onSnifferVendorChange() {
+  const vid = document.getElementById('sn-vendor-id').value;
+  const newGroup = document.getElementById('sn-new-name-group');
+  if (vid === 'new') {
+    newGroup.style.display = 'block';
+    document.getElementById('sn-login-url').value = '';
+  } else if (vid) {
+    newGroup.style.display = 'none';
+    // 自动填充登录页URL
+    api('/api/vendors/' + vid).then(r => {
+      if (r.vendor) {
+        document.getElementById('sn-login-url').value = r.vendor.login_url || '';
+      }
+    });
+  } else {
+    newGroup.style.display = 'none';
+  }
+}
+
+async function snifferStart() {
+  const vendorId = document.getElementById('sn-vendor-id').value;
+  let name = '';
+  if (vendorId === 'new') {
+    name = document.getElementById('sn-name').value.trim();
+    if (!name) { alert('请输入新厂商名称'); return; }
+  } else if (vendorId) {
+    // 从厂商列表获取名称
+    const r = await api('/api/vendors/' + vendorId);
+    if (r.vendor) name = r.vendor.name;
+  }
+  if (!name) { alert('请选择厂商或输入新厂商名称'); return; }
+  const loginUrl = document.getElementById('sn-login-url').value.trim();
+  const username = document.getElementById('sn-username').value.trim();
+  const password = document.getElementById('sn-password').value.trim();
+  const dataPages = collectDataPages();
+  if (!name || !loginUrl || !username || !password) { alert('请填写完整的厂商信息'); return; }
+  if (dataPages.length === 0) { alert('请至少填写一个数据页面'); return; }
+
+  // 显示日志卡片
+  document.getElementById('sniffer-log-card').style.display = 'block';
+  document.getElementById('sniffer-log').innerHTML = '';
+  document.getElementById('sniffer-result-card').style.display = 'none';
+  appendLog('开始抓包：' + name);
+  appendLog('登录页：' + loginUrl);
+  appendLog('数据页面：' + dataPages.map(p => p.name).join('、'));
+  appendLog('正在启动浏览器...');
+
+  document.getElementById('sn-start-btn').style.display = 'none';
+  document.getElementById('sn-stop-btn').style.display = 'inline-block';
+  document.getElementById('sniffer-status').innerHTML = '<div class="alert alert-info">正在启动浏览器，请稍候（首次可能需要10-20秒）...</div>';
+
+  const r = await api('/api/sniffer/start', 'POST', { name, login_url: loginUrl, username, password, data_pages: dataPages });
+  if (!r.success) {
+    appendLog('启动失败: ' + r.error);
+    document.getElementById('sniffer-status').innerHTML = '<div class="alert alert-danger">启动失败: ' + r.error + '</div>';
+    document.getElementById('sn-start-btn').style.display = 'inline-block';
+    document.getElementById('sn-stop-btn').style.display = 'none';
+    return;
+  }
+  appendLog('浏览器启动指令已发送，等待浏览器打开...');
+  snifferTimer = setInterval(snifferPoll, 1500);
+}
+
+async function snifferPoll() {
+  try {
+    const r = await api('/api/sniffer/status');
+    const status = document.getElementById('sniffer-status');
+    let alertClass = 'alert-info';
+    if (r.status === 'login_success') alertClass = 'alert-success';
+    if (r.status === 'capturing') alertClass = 'alert-info';
+    if (r.status === 'error') alertClass = 'alert-danger';
+    if (r.status === 'done') alertClass = 'alert-success';
+    status.innerHTML = '<div class="alert ' + alertClass + '"><b>状态：' + (r.status || '') + '</b><br>' + (r.message || '') + '</div>';
+
+    // 等待登录时显示"我已登录"手动确认按钮
+    const manualBtn = document.getElementById('sniffer-manual-login-btn');
+    if (r.status === 'waiting_login') {
+      if (!manualBtn) {
+        const btn = document.createElement('button');
+        btn.id = 'sniffer-manual-login-btn';
+        btn.className = 'btn btn-success';
+        btn.style.marginTop = '12px';
+        btn.textContent = '我已登录（手动确认）';
+        btn.onclick = snifferConfirmLogin;
+        document.getElementById('sniffer-log-card').appendChild(btn);
+      }
+    } else {
+      if (manualBtn) manualBtn.remove();
+    }
+
+    // 显示日志（如果有新日志）
+    if (r.logs && r.logs.length > 0) {
+      const logDiv = document.getElementById('sniffer-log');
+      const currentLines = logDiv.innerHTML.split('\n').length;
+      if (r.logs.length > currentLines - 1) {
+        logDiv.innerHTML = r.logs.join('\n') + '\n';
+        logDiv.scrollTop = logDiv.scrollHeight;
+      }
+    }
+
+    // 登录成功后显示结果卡片
+    if (r.status === 'login_success' || r.status === 'capturing' || r.status === 'waiting_data' || r.status === 'done') {
+      document.getElementById('sniffer-result-card').style.display = 'block';
+      if (r.login_config) {
+        const lc = r.login_config;
+        document.getElementById('sniffer-login-info').innerHTML =
+          '<div class="alert alert-success"><b>已识别登录接口：</b><br>' +
+          '接口: ' + (lc.method || 'POST') + ' ' + (lc.url || '') + '<br>' +
+          '账号字段: ' + (lc.username_field || '') + '，密码字段: ' + (lc.password_field || '') + '<br>' +
+          'token路径: ' + (lc.token_path || '') + '，认证头: ' + (lc.auth_header || '') + '</div>';
+      }
+      // 控制生成按钮状态：只有数据页面访问完成后才能点击
+      const genBtn = document.querySelector('#sniffer-result-card .btn-primary');
+      if (genBtn) {
+        if (r.status === 'waiting_data' || r.status === 'done') {
+          genBtn.disabled = false;
+          genBtn.style.opacity = '1';
+          genBtn.style.cursor = 'pointer';
+          genBtn.textContent = '生成厂商配置（自动捕获数据接口并保存）';
+        } else {
+          genBtn.disabled = true;
+          genBtn.style.opacity = '0.5';
+          genBtn.style.cursor = 'not-allowed';
+          if (r.status === 'capturing') {
+            genBtn.textContent = '正在访问数据页面，请稍候...';
+          } else if (r.status === 'login_success') {
+            genBtn.textContent = '等待访问数据页面...';
+          }
+        }
+      }
+    }
+
+    // 完成或出错后停止轮询
+    if (r.status === 'done' || r.status === 'error') {
+      if (snifferTimer) { clearInterval(snifferTimer); snifferTimer = null; }
+      document.getElementById('sn-start-btn').style.display = 'inline-block';
+      document.getElementById('sn-stop-btn').style.display = 'none';
+    }
+  } catch (e) {
+    // 轮询出错不处理，避免无限报错
+  }
+}
+
+async function snifferCaptureData() {
+  appendLog('开始捕获数据接口...');
+  const r = await api('/api/sniffer/capture-data', 'POST');
+  const result = document.getElementById('sniffer-data-result');
+  if (r.success) {
+    appendLog('已识别 ' + r.count + ' 个数据接口：' + (r.apis || []).join('、'));
+    result.innerHTML = '<div class="alert alert-success">已识别 ' + r.count + ' 个数据接口：' + (r.apis || []).join('、') + '</div>';
+  } else {
+    appendLog('捕获失败: ' + r.error);
+    result.innerHTML = '<div class="alert alert-danger">捕获失败: ' + r.error + '</div>';
+  }
+}
+
+async function snifferGenerate() {
+  if (!confirm('确认生成厂商配置？同名厂商会被更新。')) return;
+
+  // 直接调用生成接口，后端会自动执行捕获数据接口的操作
+  appendLog('正在生成厂商配置（自动捕获数据接口中...）');
+  const capResult = document.getElementById('sniffer-data-result');
+
+  const r = await api('/api/sniffer/generate', 'POST');
+  if (r.success) {
+    appendLog('厂商配置已' + r.action + '！ID=' + r.id);
+    capResult.innerHTML += '<div class="alert alert-success"><b>厂商配置已' + r.action + '！</b> ID=' + r.id + '，可在"厂商管理"中查看和修改。</div>';
+    loadVendors();
+  } else {
+    appendLog('生成失败: ' + r.error);
+    capResult.innerHTML = '<div class="alert alert-danger">生成失败: ' + r.error + '</div>';
+  }
+}
+
+async function snifferStop() {
+  if (!confirm('确认停止抓包？浏览器将关闭。')) return;
+  appendLog('正在停止抓包...');
+  try {
+    await api('/api/sniffer/stop', 'POST');
+  } catch (e) {}
+  if (snifferTimer) { clearInterval(snifferTimer); snifferTimer = null; }
+  appendLog('抓包已停止');
+  document.getElementById('sniffer-status').innerHTML = '<div class="alert alert-warning">已停止抓包</div>';
+  document.getElementById('sn-start-btn').style.display = 'inline-block';
+  document.getElementById('sn-stop-btn').style.display = 'none';
+  const manualBtn = document.getElementById('sniffer-manual-login-btn');
+  if (manualBtn) manualBtn.remove();
+}
+
+async function snifferConfirmLogin() {
+  appendLog('用户手动确认登录成功');
+  const r = await api('/api/sniffer/confirm-login', 'POST');
+  if (r.success) {
+    appendLog('已确认登录成功，开始访问数据页面...');
+  } else {
+    appendLog('确认失败: ' + r.error);
+  }
+}
+
+async function snifferShowRequests() {
+  const r = await api('/api/sniffer/requests');
+  const div = document.getElementById('sniffer-requests');
+  if (!r.requests || r.requests.length === 0) { div.innerHTML = '<div class="empty">暂无请求</div>'; return; }
+  let html = '<div class="table-scroll"><table class="data-table"><tr><th>时间</th><th>方法</th><th>URL</th><th>类型</th></tr>';
+  r.requests.slice(-30).forEach(req => {
+    html += '<tr><td>' + req.time + '</td><td>' + req.method + '</td>' +
+      '<td style="max-width:500px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="' + req.url + '">' + req.url + '</td>' +
+      '<td>' + req.resource_type + '</td></tr>';
+  });
+  html += '</table></div>';
+  div.innerHTML = html;
+}
+
+// ==================== 来源管理 ====================
+function onVendorChange(sel) {
+  // 选择厂商后，自动填充来源名称为厂商名称（如果来源名称为空或用户未手动修改）
+  const vendorId = sel.value;
+  if (!vendorId) return;
+  const nameInput = document.getElementById('src-name');
+  const vendorName = sel.options[sel.selectedIndex].text;
+  // 如果来源名称为空，自动填充
+  if (!nameInput.value.trim()) {
+    nameInput.value = vendorName;
+  }
+}
+
+async function loadVendorSelects() {
+  const r = await api('/api/vendors');
+  const opts = '<option value="">请选择厂商</option>' + (r.vendors||[]).map(v => '<option value="' + v.id + '">' + v.name + '</option>').join('');
+  document.getElementById('src-vendor').innerHTML = opts;
+  document.getElementById('edit-vendor').innerHTML = '<option value="">不指定（用自定义配置）</option>' + (r.vendors||[]).map(v => '<option value="' + v.id + '">' + v.name + '</option>').join('');
+}
+
+async function loadSources() {
+  const r = await api('/api/sources');
+  const list = document.getElementById('source-list');
+  if (!r.sources || r.sources.length === 0) { list.innerHTML = '<div class="empty">暂无来源，请先添加</div>'; return; }
+  let html = '<table><tr><th>ID</th><th>名称</th><th>厂商</th><th>账号</th><th>状态</th><th>操作</th></tr>';
+  r.sources.forEach(s => {
+    const hasToken = s.access_token && s.access_token.length > 20;
+    html += '<tr><td>' + s.id + '</td><td>' + (s.name||'') + '</td><td>' + (s.vendor_name||'未指定') + '</td><td>' + (s.username||'') + '</td>'
+      + '<td>' + (hasToken ? '<span class="tag tag-success">已登录</span>' : '<span class="tag tag-warning">未登录</span>') + '</td>'
+      + '<td><button class="btn" onclick="editSource(' + s.id + ')">编辑</button> '
+      + '<button class="btn btn-danger" onclick="delSource(' + s.id + ')">删除</button></td></tr>';
+  });
+  html += '</table>';
+  list.innerHTML = html;
+}
+
+async function addSource() {
+  const name = document.getElementById('src-name').value.trim();
+  const vendorId = parseInt(document.getElementById('src-vendor').value) || 0;
+  const username = document.getElementById('src-username').value.trim();
+  const password = document.getElementById('src-password').value.trim();
+  if (!name || !username || !password) { alert('请填写名称、账号、密码'); return; }
+  if (!vendorId) { alert('请选择所属厂商'); return; }
+  const r = await api('/api/sources', 'POST', { name, username, password, vendor_id: vendorId });
+  if (r.success) { alert('添加成功'); ['src-name','src-username','src-password'].forEach(id => document.getElementById(id).value=''); document.getElementById('src-vendor').value=''; loadSources(); }
+}
+
+async function editSource(id) {
+  const r = await api('/api/sources/' + id);
+  if (!r.source) return;
+  const s = r.source;
+  document.getElementById('edit-source-id').value = s.id;
+  document.getElementById('edit-name').value = s.name || '';
+  document.getElementById('edit-vendor').value = s.vendor_id || '';
+  document.getElementById('edit-username').value = s.username || '';
+  document.getElementById('edit-password').value = s.password || '';
+  document.getElementById('source-modal').classList.add('show');
+}
+
+function closeSourceModal() {
+  document.getElementById('source-modal').classList.remove('show');
+}
+
+async function saveSourceEdit() {
+  const id = document.getElementById('edit-source-id').value;
+  const data = {
+    name: document.getElementById('edit-name').value.trim(),
+    username: document.getElementById('edit-username').value.trim(),
+    password: document.getElementById('edit-password').value,
+    vendor_id: parseInt(document.getElementById('edit-vendor').value) || 0,
+  };
+  const r = await api('/api/sources/' + id, 'PUT', data);
+  if (r.success) { alert('保存成功'); closeSourceModal(); loadSources(); }
+}
+
+async function delSource(id) {
+  if (!confirm('确认删除该来源？')) return;
+  await api('/api/sources/' + id, 'DELETE');
+  loadSources();
+}
+
+// ==================== 登录 ====================
+async function loadLoginSources() {
+  const r = await api('/api/sources');
+  const sel = document.getElementById('login-source');
+  sel.innerHTML = '<option value="">请选择来源</option>';
+  (r.sources||[]).forEach(s => { sel.innerHTML += '<option value="' + s.id + '">' + (s.name||s.username) + '</option>'; });
+}
+
+async function loadLoginStatus() {
+  const id = document.getElementById('login-source').value;
+  if (!id) { document.getElementById('login-status').innerHTML=''; document.getElementById('captcha-area').style.display='none'; return; }
+  const r = await api('/api/sources/' + id);
+  const hasToken = r.source && r.source.access_token && r.source.access_token.length > 20;
+  const vendor = r.source && r.source.vendor;
+  const hasCaptcha = vendor && vendor.login_config && vendor.login_config.has_captcha;
+  let html = '';
+  if (hasToken) {
+    html = '<div class="alert alert-success">该来源已登录，access_token 已保存。如需重新登录请点击下方按钮。</div>';
+  } else {
+    html = '<div class="alert alert-info">该来源尚未登录。</div>';
+  }
+  html += '<div style="display:flex;gap:10px;margin-top:10px;flex-wrap:wrap;">';
+  if (hasCaptcha) {
+    html += '<button class="btn btn-primary" onclick="getCaptcha()">① API登录（需输入验证码）</button>';
+  } else {
+    html += '<button class="btn btn-primary" onclick="directLogin()">① 直接登录（无验证码）</button>';
+  }
+  html += '<button class="btn btn-success" onclick="browserGetCaptcha()">② 浏览器登录（备用，最稳但慢）</button>';
+  html += '</div>';
+  html += '<div style="margin-top:10px;"><label style="cursor:pointer;"><input type="checkbox" id="manual-input" style="margin-right:5px;">手动输入账号密码（浏览器打开后60秒内手动输入，避免自动输入空格问题）</label></div>';
+  document.getElementById('login-status').innerHTML = html;
+  document.getElementById('captcha-area').style.display = 'none';
+}
+
+async function getCaptcha() {
+  const id = document.getElementById('login-source').value;
+  if (!id) { alert('请先选择来源'); return; }
+  log('获取验证码...');
+  const r = await api('/api/sources/' + id + '/captcha', 'POST');
+  if (r.success) {
+    currentVerkey = r.verkey;
+    const img = document.getElementById('captcha-img');
+    // 添加时间戳避免缓存
+    img.src = '/api/captcha/image/' + r.image_name + '?t=' + Date.now();
+    img.onerror = function() { log('验证码图片加载失败，请点击"换一张"重试'); };
+    document.getElementById('captcha-area').style.display = 'block';
+    document.getElementById('captcha-input').value = '';
+    const btn = document.querySelector('#captcha-area .btn-primary');
+    if (btn) { btn.setAttribute('onclick', 'doLogin()'); btn.textContent = '确认登录'; }
+    log('验证码已获取，请识别后输入（如果图片没显示，点"换一张"）');
+  } else {
+    log('获取验证码失败: ' + r.error);
+    alert('获取验证码失败: ' + r.error);
+  }
+}
+
+async function doLogin() {
+  const id = document.getElementById('login-source').value;
+  const code = document.getElementById('captcha-input').value.trim();
+  if (!code) { alert('请输入验证码'); return; }
+  if (!currentVerkey) { alert('请先获取验证码'); return; }
+  log('登录中...');
+  const btn = event.target; btn.disabled = true;
+  const r = await api('/api/sources/' + id + '/login', 'POST', { verifyCode: code, verkey: currentVerkey });
+  btn.disabled = false;
+  const result = document.getElementById('login-result');
+  if (r.success) {
+    result.innerHTML = '<div class="alert alert-success">登录成功！access_token 已保存</div>';
+    log('登录成功');
+    document.getElementById('captcha-area').style.display = 'none';
+    currentVerkey = '';
+    loadLoginStatus();
+  } else {
+    let errorMsg = r.error || '未知错误';
+    if (r.detail) {
+      errorMsg += '<br><span style="font-size:12px;color:#999;">' + r.detail + '</span>';
+    }
+    result.innerHTML = '<div class="alert alert-error">登录失败: ' + errorMsg + '</div>';
+    log('登录失败: ' + (r.error || '') + (r.detail ? ' | ' + r.detail : ''));
+  }
+}
+
+async function directLogin() {
+  const id = document.getElementById('login-source').value;
+  if (!id) { alert('请先选择来源'); return; }
+  log('无验证码直接登录中...');
+  const result = document.getElementById('login-result');
+  result.innerHTML = '<div class="alert alert-info">正在登录，请稍候...</div>';
+  const r = await api('/api/sources/' + id + '/login', 'POST', { verifyCode: '' });
+  if (r.success) {
+    result.innerHTML = '<div class="alert alert-success">登录成功！access_token 已保存</div>';
+    log('登录成功');
+    loadLoginStatus();
+  } else {
+    result.innerHTML = '<div class="alert alert-error">登录失败: ' + r.error + '</div>';
+    log('登录失败: ' + r.error);
+  }
+}
+
+async function browserGetCaptcha() {
+  const id = document.getElementById('login-source').value;
+  if (!id) { alert('请先选择来源'); return; }
+  const manualInput = document.getElementById('manual-input') ? document.getElementById('manual-input').checked : false;
+  if (manualInput) {
+    log('启动浏览器（手动输入模式），请在60秒内切换到浏览器窗口手动输入账号密码...');
+  } else {
+    log('启动浏览器获取验证码（可能需要10-20秒）...');
+  }
+  const result = document.getElementById('login-result');
+  result.innerHTML = '<div class="alert alert-info">正在启动浏览器，请稍候...</div>';
+  const r = await api('/api/sources/' + id + '/browser-captcha', 'POST', { manual_input: manualInput });
+  if (r.success) {
+    document.getElementById('captcha-img').src = '/api/captcha/image/' + r.image_name;
+    document.getElementById('captcha-area').style.display = 'block';
+    document.getElementById('captcha-input').value = '';
+    const btn = document.querySelector('#captcha-area .btn-primary');
+    if (btn) { btn.setAttribute('onclick', 'browserLogin()'); btn.textContent = '确认登录（浏览器）'; }
+    log('浏览器验证码已获取，请识别后输入');
+    if (manualInput) {
+      result.innerHTML = '<div class="alert alert-success">手动输入模式：账号密码已由你手动输入，现在请识别验证码后输入</div>';
+    } else {
+      result.innerHTML = '<div class="alert alert-success">浏览器已打开登录页并填写账号密码，请识别验证码后输入</div>';
+    }
+  } else {
+    log('浏览器获取验证码失败: ' + r.error);
+    result.innerHTML = '<div class="alert alert-error">失败: ' + r.error + '</div>';
+  }
+}
+
+async function browserLogin() {
+  const id = document.getElementById('login-source').value;
+  const code = document.getElementById('captcha-input').value.trim();
+  if (!code) { alert('请输入验证码'); return; }
+  log('浏览器登录中...');
+  const btn = event.target; btn.disabled = true;
+  const r = await api('/api/sources/' + id + '/browser-login', 'POST', { code: code });
+  btn.disabled = false;
+  const result = document.getElementById('login-result');
+  if (r.success) {
+    result.innerHTML = '<div class="alert alert-success">登录成功！access_token 已保存</div>';
+    log('登录成功');
+    document.getElementById('captcha-area').style.display = 'none';
+    loadLoginStatus();
+  } else {
+    result.innerHTML = '<div class="alert alert-error">登录失败: ' + r.error + '</div>';
+    log('登录失败: ' + r.error);
+  }
+}
+
+// ==================== 抓取数据 ====================
+async function loadFetchSources() {
+  const r1 = await api('/api/sources');
+  const sel = document.getElementById('fetch-source');
+  sel.innerHTML = '<option value="">请选择来源</option>';
+  (r1.sources||[]).forEach(s => { sel.innerHTML += '<option value="' + s.id + '">' + (s.name||s.username) + '</option>'; });
+  document.getElementById('fetch-api').innerHTML = '<option value="">请先选择来源</option>';
+  // 进入页面即默认选中第一个来源，并自动填充任务名称（来源 + 时间戳）
+  if (sel.options.length > 1) {
+    sel.selectedIndex = 1;
+    await loadFetchApis();
+  }
+}
+
+async function loadFetchApis() {
+  const id = document.getElementById('fetch-source').value;
+  const sel2 = document.getElementById('fetch-api');
+  // 任务名称默认 = 来源名 + 时间戳（如：熊猫游-zhangxin123_20260831_1930），可手动修改
+  const srcSel = document.getElementById('fetch-source');
+  const srcName = id && srcSel.selectedOptions && srcSel.selectedOptions.length ? srcSel.selectedOptions[0].text : '';
+  if (id && srcName) {
+    const d = new Date();
+    const pad = n => String(n).padStart(2, '0');
+    const ts = d.getFullYear() + pad(d.getMonth() + 1) + pad(d.getDate()) + '_' + pad(d.getHours()) + pad(d.getMinutes());
+    document.getElementById('fetch-taskname').value = srcName + '_' + ts;
+  }
+  if (!id) { sel2.innerHTML = '<option value="">请先选择来源</option>'; return; }
+  const r = await api('/api/sources/' + id);
+  const src = r.source || {};
+  let apis = {};
+  if (src.vendor && src.vendor.data_apis) {
+    apis = src.vendor.data_apis;
+  }
+  if (src.api_list && Object.keys(src.api_list).length > 0) {
+    apis = src.api_list;
+  }
+  sel2.innerHTML = '';
+  Object.entries(apis).forEach(([name, cfg]) => {
+    const path = typeof cfg === 'object' ? cfg.path : cfg;
+    sel2.innerHTML += '<option value="' + path + '">' + name + '</option>';
+  });
+}
+
+async function doFetch() {
+  const id = document.getElementById('fetch-source').value;
+  const apiPath = document.getElementById('fetch-api').value;
+  const dateStart = document.getElementById('fetch-date-start').value;
+  const dateEnd = document.getElementById('fetch-date-end').value;
+  const user = document.getElementById('fetch-user').value.trim();
+  const pages = parseInt(document.getElementById('fetch-pages').value) || 20;
+  const taskName = document.getElementById('fetch-taskname').value.trim() || 'API抓取';
+  if (!id) { alert('请选择来源'); return; }
+  if (!apiPath) { alert('请选择数据类型'); return; }
+  let intervalDate = '';
+  if (dateStart && dateEnd) {
+    intervalDate = dateStart + '~' + dateEnd;
+  } else if (dateStart || dateEnd) {
+    alert('请同时选择开始日期和结束日期，或都不选');
+    return;
+  }
+  const result = document.getElementById('fetch-result');
+  result.innerHTML = '<div class="alert alert-info">正在抓取，请稍候...</div>';
+  const btn = event.target; btn.disabled = true;
+  const body = { api_path: apiPath, intervalDate: intervalDate, userLogin: user, max_pages: pages, task_name: taskName };
+  const r = await api('/api/sources/' + id + '/fetch', 'POST', body);
+  btn.disabled = false;
+  if (r.success) {
+    let html = '<div class="alert alert-success">抓取成功！共 ' + r.count + ' 条数据';
+    if (r.total_count) html += '（后台总计 ' + r.total_count + ' 条）';
+    if (r.task_id) html += '，任务ID: ' + r.task_id;
+    html += '</div>';
+    if (r.count === 0) html += '<div class="empty">该账号后台在此条件下无数据</div>';
+    result.innerHTML = html;
+    log('抓取成功: ' + r.count + '条');
+  } else {
+    result.innerHTML = '<div class="alert alert-error">抓取失败: ' + r.error + '</div>';
+    log('抓取失败: ' + r.error);
+  }
+}
+
+// ==================== 数据查看（表头中文化） ====================
+let currentDataPage = 1;
+
+async function loadDataSources() {
+  const r = await api('/api/sources');
+  const sel = document.getElementById('data-source');
+  sel.innerHTML = '<option value="">请选择来源</option>';
+  (r.sources||[]).forEach(s => { sel.innerHTML += '<option value="' + s.id + '">' + (s.name||s.username) + '</option>'; });
+  // 检查MySQL状态
+  checkMysqlStatus();
+}
+
+async function checkMysqlStatus() {
+  try {
+    const r = await api('/api/crawler/mysql/status');
+    const statusEl = document.getElementById('mysql-status');
+    if (r.mysql_enabled) {
+      statusEl.innerHTML = '<div style="color:#52c41a;font-size:13px;">✅ MySQL已连接，数据将从 game_platform 数据库读取（表头中文化）</div>';
+    } else {
+      statusEl.innerHTML = '<div style="color:#ff4d4f;font-size:13px;">⚠️ MySQL未连接，请配置 .env 文件中的 MySQL 连接信息</div>';
+    }
+  } catch(e) {
+    console.error('检查MySQL状态失败', e);
+  }
+}
+
+async function loadCrawlerData() {
+  const sourceId = document.getElementById('data-source').value;
+  const dataType = document.getElementById('data-type').value;
+  const startTime = document.getElementById('data-start').value;
+  const endTime = document.getElementById('data-end').value;
+  const keyword = document.getElementById('data-keyword').value;
+  const pageSize = parseInt(document.getElementById('data-page-size').value);
+
+  if (!sourceId) {
+    document.getElementById('crawler-data-tbody').innerHTML = '<tr><td colspan="10" style="text-align:center;color:#999;padding:20px;">请先选择来源</td></tr>';
+    return;
+  }
+
+  // 构建查询参数
+  let params = new URLSearchParams({
+    source_id: sourceId,
+    data_type: dataType,
+    page: currentDataPage,
+    page_size: pageSize,
+  });
+  if (startTime) params.append('start_time', startTime + ' 00:00:00');
+  if (endTime) params.append('end_time', endTime + ' 23:59:59');
+  if (keyword) params.append('keyword', keyword);
+
+  try {
+    const r = await api('/api/crawler/data?' + params.toString());
+    if (!r.success) {
+      document.getElementById('crawler-data-tbody').innerHTML = '<tr><td colspan="10" style="text-align:center;color:#ff4d4f;padding:20px;">' + (r.error || '查询失败') + '</td></tr>';
+      return;
+    }
+    renderCrawlerTable(r.records, r.columns);
+    renderPagination(r.total, currentDataPage, pageSize);
+    document.getElementById('data-total').textContent = '共 ' + r.total + ' 条数据';
+  } catch(e) {
+    console.error('查询数据失败', e);
+    document.getElementById('crawler-data-tbody').innerHTML = '<tr><td colspan="10" style="text-align:center;color:#ff4d4f;padding:20px;">查询失败: ' + e.message + '</td></tr>';
+  }
+}
+
+function renderCrawlerTable(records, columns) {
+  const thead = document.getElementById('crawler-data-thead');
+  const tbody = document.getElementById('crawler-data-tbody');
+
+  // 渲染中文表头
+  let theadHtml = '<tr>';
+  theadHtml += '<th style="width:60px;">序号</th>';
+  (columns || []).forEach(col => {
+    theadHtml += '<th>' + (col.field_label || col.field_name) + '</th>';
+  });
+  theadHtml += '<th style="width:160px;">爬取时间</th>';
+  theadHtml += '</tr>';
+  thead.innerHTML = theadHtml;
+
+  // 渲染数据行
+  if (!records || records.length === 0) {
+    tbody.innerHTML = '<tr><td colspan="' + ((columns?.length || 0) + 2) + '" style="text-align:center;color:#999;padding:20px;">暂无数据</td></tr>';
+    return;
+  }
+
+  let tbodyHtml = '';
+  records.forEach((record, index) => {
+    tbodyHtml += '<tr>';
+    tbodyHtml += '<td>' + ((currentDataPage - 1) * 20 + index + 1) + '</td>';
+    (columns || []).forEach(col => {
+      const value = record[col.field_name] !== undefined ? record[col.field_name] : '';
+      // 根据字段类型格式化
+      let displayValue = value;
+      if (col.field_type === 'number' && value !== '') {
+        displayValue = Number(value).toLocaleString();
+      }
+      tbodyHtml += '<td title="' + (value || '') + '">' + (displayValue || '-') + '</td>';
+    });
+    tbodyHtml += '<td>' + (record.crawl_time || '-') + '</td>';
+    tbodyHtml += '</tr>';
+  });
+  tbody.innerHTML = tbodyHtml;
+}
+
+function renderPagination(total, currentPage, pageSize) {
+  const pagination = document.getElementById('data-pagination');
+  const totalPages = Math.ceil(total / pageSize);
+
+  if (totalPages <= 1) {
+    pagination.innerHTML = '';
+    return;
+  }
+
+  let html = '';
+  // 上一页
+  html += '<button class="btn" onclick="goToPage(' + (currentPage - 1) + ')" ' + (currentPage <= 1 ? 'disabled' : '') + '>上一页</button>';
+
+  // 页码（显示当前页前后2页）
+  const startPage = Math.max(1, currentPage - 2);
+  const endPage = Math.min(totalPages, currentPage + 2);
+
+  if (startPage > 1) {
+    html += '<button class="btn" onclick="goToPage(1)">1</button>';
+    if (startPage > 2) html += '<span style="color:#999;">...</span>';
+  }
+
+  for (let i = startPage; i <= endPage; i++) {
+    html += '<button class="btn ' + (i === currentPage ? 'btn-primary' : '') + '" onclick="goToPage(' + i + ')">' + i + '</button>';
+  }
+
+  if (endPage < totalPages) {
+    if (endPage < totalPages - 1) html += '<span style="color:#999;">...</span>';
+    html += '<button class="btn" onclick="goToPage(' + totalPages + ')">' + totalPages + '</button>';
+  }
+
+  // 下一页
+  html += '<button class="btn" onclick="goToPage(' + (currentPage + 1) + ')" ' + (currentPage >= totalPages ? 'disabled' : '') + '>下一页</button>';
+
+  pagination.innerHTML = html;
+}
+
+function goToPage(page) {
+  currentDataPage = page;
+  loadCrawlerData();
+}
+
+function exportCrawlerData() {
+  const sourceId = document.getElementById('data-source').value;
+  const dataType = document.getElementById('data-type').value;
+  if (!sourceId) { alert('请先选择来源'); return; }
+
+  // 导出当前页数据为CSV
+  const rows = document.querySelectorAll('#crawler-data-tbody tr');
+  if (rows.length === 0) { alert('暂无数据可导出'); return; }
+
+  const headers = Array.from(document.querySelectorAll('#crawler-data-thead th')).map(th => th.textContent);
+  let csv = '\uFEFF' + headers.join(',') + '\n';
+
+  rows.forEach(row => {
+    const cells = Array.from(row.querySelectorAll('td')).map(td => {
+      let text = td.textContent.replace(/"/g, '""');
+      return '"' + text + '"';
+    });
+    csv += cells.join(',') + '\n';
+  });
+
+  const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+  const link = document.createElement('a');
+  link.href = URL.createObjectURL(blob);
+  link.download = '爬虫数据_' + dataType + '_' + new Date().toISOString().slice(0,10) + '.csv';
+  link.click();
+}
+
+// ==================== 更新管理（智能更新策略） ====================
+async function loadUpdateSources() {
+  const r = await api('/api/sources');
+  const sel = document.getElementById('update-source');
+  sel.innerHTML = '<option value="">全部来源</option>';
+  (r.sources||[]).forEach(s => { sel.innerHTML += '<option value="' + s.id + '">' + (s.name||s.username) + '</option>'; });
+}
+
+async function loadUpdateStatus() {
+  const sourceId = document.getElementById('update-source').value;
+  let url = '/api/crawler/update/status';
+  if (sourceId) url += '?source_id=' + sourceId;
+
+  try {
+    const r = await api(url);
+    if (!r.success) {
+      document.getElementById('scheduler-status').innerHTML = '<div style="color:#ff4d4f;">' + (r.error || '获取状态失败') + '</div>';
+      return;
+    }
+
+    // 显示定时任务状态
+    const schedulerStatus = r.scheduler_running
+      ? '<span style="color:#52c41a;">✅ 定时任务运行中</span>'
+      : '<span style="color:#faad14;">⚠️ 定时任务未启动</span>';
+    document.getElementById('scheduler-status').innerHTML = schedulerStatus;
+
+    // 显示定时任务列表
+    let jobsHtml = '<div style="font-size:13px;color:#666;margin-bottom:8px;"><strong>定时任务计划：</strong></div>';
+    if (r.scheduled_jobs && r.scheduled_jobs.length > 0) {
+      jobsHtml += '<table class="data-table"><tr><th>任务名称</th><th>触发规则</th><th>下次执行时间</th></tr>';
+      r.scheduled_jobs.forEach(job => {
+        jobsHtml += '<tr><td>' + job.name + '</td><td>' + job.trigger + '</td><td>' + (job.next_run_time || '-') + '</td></tr>';
+      });
+      jobsHtml += '</table>';
+    } else {
+      jobsHtml += '<div style="color:#999;">定时任务未启动，点击"启动定时任务"按钮开始</div>';
+    }
+    document.getElementById('scheduled-jobs').innerHTML = jobsHtml;
+
+    // 显示来源更新状态
+    const tbody = document.getElementById('update-status-tbody');
+    if (!r.status || r.status.length === 0) {
+      tbody.innerHTML = '<tr><td colspan="8" style="text-align:center;color:#999;padding:20px;">暂无更新记录，启动定时任务或手动触发更新后显示</td></tr>';
+      return;
+    }
+
+    const typeNames = { player: '玩家账号', recharge: '充值明细', role: '角色信息' };
+    let html = '';
+    r.status.forEach(item => {
+      // 状态标签
+      let statusLabel = '';
+      if (item.paused) {
+        statusLabel = '<span style="color:#ff4d4f;">⏸️ 已暂停</span>';
+      } else if (item.rate_limited) {
+        statusLabel = '<span style="color:#faad14;">🚫 限流中(' + Math.ceil(item.rate_limited_remaining/60) + '分)</span>';
+      } else if (item.fail_count > 0) {
+        statusLabel = '<span style="color:#faad14;">⚠️ 失败' + item.fail_count + '次</span>';
+      } else {
+        statusLabel = '<span style="color:#52c41a;">✅ 正常</span>';
+      }
+
+      // 手动冷却
+      let cooldownLabel = item.manual_cooldown_remaining > 0
+        ? Math.ceil(item.manual_cooldown_remaining/60) + '分' + (item.manual_cooldown_remaining%60) + '秒'
+        : '可触发';
+
+      // 操作按钮
+      let actions = '<button class="btn btn-primary" onclick="manualUpdate(' + item.source_id + ',\'' + item.data_type + '\')">立即更新</button> ';
+      if (item.paused) {
+        actions += '<button class="btn" onclick="resumeSource(' + item.source_id + ',\'' + item.data_type + '\')">恢复</button>';
+      }
+
+      html += '<tr>'
+        + '<td>' + item.source_id + '</td>'
+        + '<td>' + (typeNames[item.data_type] || item.data_type) + '</td>'
+        + '<td>' + item.last_update + '</td>'
+        + '<td>' + item.next_auto_update + '</td>'
+        + '<td>' + item.fail_count + '</td>'
+        + '<td>' + statusLabel + '</td>'
+        + '<td>' + cooldownLabel + '</td>'
+        + '<td>' + actions + '</td>'
+        + '</tr>';
+    });
+    tbody.innerHTML = html;
+
+  } catch(e) {
+    console.error('获取更新状态失败', e);
+    document.getElementById('scheduler-status').innerHTML = '<div style="color:#ff4d4f;">获取状态失败: ' + e.message + '</div>';
+  }
+}
+
+async function manualUpdate(sourceId, dataType) {
+  if (!confirm('确认立即更新？\n\n注意：\n1. 冷却时间1小时，1小时内只能触发一次\n2. 只爬最近24小时的增量数据\n3. 请求间隔3-5秒，避免被封禁')) return;
+
+  try {
+    const r = await api('/api/crawler/update/manual', 'POST', {
+      source_id: sourceId,
+      data_type: dataType,
+    });
+    if (r.success) {
+      alert('✅ ' + r.message);
+      setTimeout(() => loadUpdateStatus(), 2000);
+    } else {
+      alert('❌ ' + (r.message || r.error || '触发失败'));
+    }
+  } catch(e) {
+    alert('❌ 触发更新失败: ' + e.message);
+  }
+}
+
+async function resumeSource(sourceId, dataType) {
+  if (!confirm('确认恢复该来源的自动更新？')) return;
+
+  try {
+    const r = await api('/api/crawler/update/resume', 'POST', {
+      source_id: sourceId,
+      data_type: dataType,
+    });
+    if (r.success) {
+      alert('✅ ' + r.message);
+      loadUpdateStatus();
+    } else {
+      alert('❌ ' + (r.error || '恢复失败'));
+    }
+  } catch(e) {
+    alert('❌ 恢复失败: ' + e.message);
+  }
+}
+
+async function startScheduler() {
+  try {
+    const r = await api('/api/crawler/scheduler/start', 'POST');
+    if (r.success) {
+      alert('✅ ' + r.message);
+      loadUpdateStatus();
+    } else {
+      alert('❌ ' + (r.error || '启动失败'));
+    }
+  } catch(e) {
+    alert('❌ 启动定时任务失败: ' + e.message);
+  }
+}
+
+async function stopScheduler() {
+  if (!confirm('确认停止定时任务？停止后将不会自动更新数据')) return;
+
+  try {
+    const r = await api('/api/crawler/scheduler/stop', 'POST');
+    if (r.success) {
+      alert('✅ ' + r.message);
+      loadUpdateStatus();
+    } else {
+      alert('❌ ' + (r.error || '停止失败'));
+    }
+  } catch(e) {
+    alert('❌ 停止定时任务失败: ' + e.message);
+  }
+}
+
+// 初始化
+loadVendors();
+</script>
+</body>
+</html>

@@ -1,0 +1,33 @@
+# ============================================================
+# 通用游戏数据爬虫平台 .gitignore
+# ============================================================
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+
+# 运行数据 / 日志
+data/
+logs/
+captcha/
+
+# 环境配置（含密钥）
+.env
+
+# 临时 / 调试输出
+*.png
+*.db
+*.txt
+*.tmp
+
+# 调试辅助脚本（不入库）
+test_*.py
+*_test.py
+full_test*.py
+analyze_*.py
+clean_captcha.py
+gen_field_mapping.py
+hide_fields.py
+inspect_sqlite.py
+sync_sqlite_to_mysql.py
