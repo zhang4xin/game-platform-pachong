@@ -1,14 +1,14 @@
 # -*- coding: utf-8 -*-
 """
-数据库存储模块：把爬取的数据存入 SQLite 数据库
+数据库存储模块（存储适配器）
 
-特点：
-- SQLite 是嵌入式数据库：无需安装数据库软件、无需账号密码
-- 数据库就是 data/crawler.db 这个文件，复制即备份，与主项目完全隔离
-- 数据按"任务"组织：每次爬取 = 一个任务，每行数据都有记录
+默认使用 SQLite：嵌入式数据库，无需安装、复制即备份，与主项目完全隔离。
+当环境变量 CRAWLER_STORAGE=mysql 时，自动切换为 MySQL 存储（见 storage_mysql.py），
+两者接口完全一致，crawler.py / app.py 无需改动。
 
-后续如需升级为 MySQL（与主项目共用），可在此模块基础上扩展。
+数据按"任务"组织：每次爬取 = 一个任务，每行数据都有记录。
 """
+import os
 import json
 import sqlite3
 from datetime import datetime
@@ -423,4 +423,11 @@ class Storage:
 
 
 # 全局单例（供 crawler / app 共用）
-storage = Storage()
+# 存储后端由环境变量 CRAWLER_STORAGE 决定：mysql -> MySQL（game_crawler 库），否则 -> SQLite
+if os.getenv('CRAWLER_STORAGE', '').strip().lower() == 'mysql':
+    from storage_mysql import Storage as _MySQLStorage
+    storage = _MySQLStorage()
+    print("🗄️ 爬虫主存储：MySQL")
+else:
+    storage = Storage()
+    print("🗄️ 爬虫主存储：SQLite")
