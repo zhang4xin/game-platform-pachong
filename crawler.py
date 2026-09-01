@@ -96,7 +96,7 @@ class ApiCrawler:
 
     # ==================== 验证码（通用，用于有验证码的厂商） ====================
 
-    def get_captcha(self, api_base_url=None, captcha_config=None):
+    def get_captcha(self, api_base_url=None, captcha_config=None, login_url=None):
         """
         通用获取验证码（支持两种模式）：
         模式1 - 直接图片：captcha_config = {"url": "https://xxx/captcha.jpg"}
@@ -444,13 +444,14 @@ class ApiCrawler:
             all_rows = []
             columns = []
             total_count = 0
+            prev_first_key = None
+            prev_page_len = 0
 
             for page_no in range(1, max_pages + 1):
                 page_params = dict(params)
                 page_params[page_param] = str(page_no)
 
                 self.log("抓取第%d页: %s" % (page_no, api_path))
-
                 # 发送请求
                 if method == "GET":
                     r = self.session.get(full_url, params=page_params, timeout=30)
@@ -496,6 +497,17 @@ class ApiCrawler:
 
                 if not lst:
                     break
+
+                # 分页异常检测：若连续两页首条数据完全相同（接口忽略分页参数），停止翻页避免重复
+                if isinstance(lst[0], dict):
+                    cur_key = str(lst[0].get("mId") or lst[0].get("id") or lst[0].get("orderNo")
+                                or lst[0].get("order_no") or lst[0].get("userAccount")
+                                or json.dumps(lst[0], ensure_ascii=False, sort_keys=True)[:120])
+                    if prev_first_key is not None and cur_key == prev_first_key and len(lst) == prev_page_len:
+                        self.log("  检测到接口未按分页返回（第%d页与第%d页数据相同），停止翻页" % (page_no, page_no - 1))
+                        break
+                    prev_first_key = cur_key
+                    prev_page_len = len(lst)
 
                 all_rows.extend(lst)
                 total_pages = (int(total_count) + page_size - 1) // page_size if total_count else page_no

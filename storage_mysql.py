@@ -392,7 +392,7 @@ class Storage:
                 result.append(d)
             return result
 
-    def get_task_rows(self, task_id: int, limit: int = 200):
+    def get_task_rows(self, task_id: int, limit: int = 10000):
         """查询某个任务的所有数据行，返回 {columns, rows}"""
         with self._connect() as conn:
             cur = conn.cursor()
