@@ -333,8 +333,6 @@ def api_fetch(source_id: int, req: FetchReq):
         return {"success": False, "error": "来源不存在"}
 
     access_token = src.get("access_token", "")
-    if not access_token or len(access_token) < 20:
-        return {"success": False, "error": "该来源未登录或 access_token 无效，请先登录"}
 
     vendor = get_effective_vendor(src)
     api_base = src.get("api_base_url") or (vendor.get("api_base_url") if vendor else None)
@@ -350,6 +348,11 @@ def api_fetch(source_id: int, req: FetchReq):
         elif path == req.api_path:
             api_cfg = {"path": req.api_path}
             break
+
+    # HTML 表格模式（cookie 会话）不依赖 access_token；仅 token 模式需要
+    need_token = not (api_cfg and str(api_cfg.get("response_type", "")).lower() == "html")
+    if need_token and (not access_token or len(access_token) < 20):
+        return {"success": False, "error": "该来源未登录或 access_token 无效，请先登录"}
 
     # 构造参数
     params = {}

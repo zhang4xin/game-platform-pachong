@@ -274,6 +274,31 @@ class ApiCrawler:
 
             self.log("登录中... 账号: %s 接口: %s %s" % (username, method, url))
 
+            # ===== cookie 会话模式（ThinkPHP 等后台）：不依赖 token，登录后保持 cookie =====
+            if cfg.get("cookie_session"):
+                max_retries = 2
+                for retry in range(max_retries + 1):
+                    try:
+                        if method == "GET":
+                            r = self.session.get(url, params=payload, timeout=30, allow_redirects=True)
+                        else:
+                            r = self.session.post(url, data=payload, timeout=30, allow_redirects=True)
+                        break
+                    except Exception as e:
+                        if retry < max_retries:
+                            self.log(f"登录请求网络错误: {str(e)[:60]}，{retry+1}秒后重试...")
+                            time.sleep(retry + 1)
+                        else:
+                            raise
+                # 判断登录成功：出现"用户名同名cookie" 或 响应含后台首页特征（欢迎/退出） 或 跳转到 index
+                username_cookie = [c.value for c in self.session.cookies if c.name and c.value == username]
+                has_home = ('欢迎' in r.text and '退出' in r.text) or 'index' in (r.url or '').lower() or 'doLogin' in (r.url or '').lower()
+                if username_cookie or has_home:
+                    self.log("登录成功（cookie 会话模式，session保持）")
+                    return {"success": True, "access_token": "", "user_info": {"session": True, "mode": "cookie"}}
+                self.log("登录失败（cookie 会话模式，未检测到登录成功标志）")
+                return {"success": False, "error": "cookie会话登录失败，未检测到登录成功标志", "raw_response": r.text[:200]}
+
             # 发送请求（网络错误时自动重试2次）
             max_retries = 2
             for retry in range(max_retries + 1):
@@ -324,6 +349,39 @@ class ApiCrawler:
 
     # ==================== 通用数据抓取（根据厂商配置） ====================
 
+    def _parse_html_table(self, html):
+        """解析 HTML 表格，返回 (数据行列表[dict], 表头列表, 总条数)。
+        兼容 ThinkPHP 等后台：POST 表单返回整页 HTML，数据在 <table> 中。
+        总条数从"共 N 条"文本提取；分页由调用方按 page_size 计算。
+        """
+        import re
+        # 表头
+        ths = [re.sub(r'<[^>]+>', '', t).strip()
+               for t in re.findall(r'<th[^>]*>([\s\S]*?)</th>', html, re.I)]
+        # 数据行
+        rows = []
+        for tr in re.findall(r'<tr[^>]*>([\s\S]*?)</tr>', html, re.I):
+            tds = [re.sub(r'<[^>]+>', '', td).strip()
+                   for td in re.findall(r'<td[^>]*>([\s\S]*?)</td>', tr, re.I)]
+            if not tds:
+                continue
+            # 跳过表头行
+            if ths and len(tds) == len(ths) and all(a == b or (not a and not b) for a, b in zip(tds, ths)):
+                continue
+            if ths and len(tds) == len(ths):
+                rows.append(dict(zip(ths, tds)))
+            elif not ths:
+                rows.append({str(i): v for i, v in enumerate(tds)})
+        # 总条数
+        total = 0
+        m = re.search(r'共\s*(\d+)\s*条', html)
+        if m:
+            try:
+                total = int(m.group(1))
+            except ValueError:
+                total = 0
+        return rows, ths, total
+
     def fetch_data(self, api_path, access_token, params=None, max_pages=20,
                    source_id=None, task_name="API抓取", api_base_url=None,
                    data_api_config=None):
@@ -343,9 +401,6 @@ class ApiCrawler:
         }
         """
         try:
-            if not access_token:
-                return {"success": False, "error": "缺少 access_token，请先登录"}
-
             base = api_base_url or API_BASE
             if not base:
                 return {"success": False, "error": "缺少 api_base_url"}
@@ -359,6 +414,10 @@ class ApiCrawler:
 
             method = (cfg.get("method") or "POST").upper()
             content_type = cfg.get("content_type") or "form"
+            response_type = (cfg.get("response_type") or "json").lower()
+            # 非 token 模式（HTML 表格/cookie 会话）不需要 access_token
+            if not access_token and response_type != "html":
+                return {"success": False, "error": "缺少 access_token，请先登录"}
             page_param = cfg.get("page_param") or "pageNo"
             page_size_param = cfg.get("page_size_param") or "pageSize"
             page_size = int(cfg.get("page_size") or 50)
@@ -400,6 +459,22 @@ class ApiCrawler:
                 else:
                     files = {k: (None, str(v)) for k, v in page_params.items()}
                     r = self.session.post(full_url, files=files, timeout=30)
+
+                if response_type == "html":
+                    # ===== HTML 表格解析模式（ThinkPHP 等后台：POST 表单返回 HTML 表格） =====
+                    lst, html_headers, html_total = self._parse_html_table(r.text)
+                    if html_headers and not columns:
+                        columns = html_headers
+                    if not lst:
+                        self.log("  本页无数据")
+                        break
+                    total_count = html_total or len(lst)
+                    all_rows.extend(lst)
+                    total_pages = (int(total_count) + page_size - 1) // page_size if html_total else page_no
+                    self.log("  本页%d条，累计%d条，共%d条" % (len(lst), len(all_rows), total_count))
+                    if page_no >= total_pages:
+                        break
+                    continue
 
                 data = r.json()
 
