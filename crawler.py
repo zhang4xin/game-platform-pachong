@@ -377,7 +377,11 @@ class ApiCrawler:
                 params.setdefault(k, v)
             params.setdefault(page_size_param, str(page_size))
 
-            full_url = base + api_path
+            # PHP 后台接口可能是完整 URL（含域名），此时不再拼接 base
+            if api_path.startswith("http://") or api_path.startswith("https://"):
+                full_url = api_path
+            else:
+                full_url = base + api_path
             all_rows = []
             columns = []
             total_count = 0
@@ -1580,10 +1584,15 @@ class Sniffer:
                     continue
                 parsed = urlparse(url)
                 api_path = parsed.path
-                # 跳过页面本身（document类型且路径不含api）
-                if req["resource_type"] == 'document' and '/api/' not in api_path:
+                # PHP 后台（index.php?g=&m=&a= 等）：接口靠 query 区分，保留完整 URL 用于识别与抓取
+                is_php_backend = ('.php' in api_path) and bool(parsed.query)
+                # 跳过页面本身（document 类型且非 PHP 后台、路径不含 api）
+                if req["resource_type"] == 'document' and not is_php_backend and '/api/' not in api_path:
                     skipped += 1
                     continue
+                # PHP 后台：用完整 URL（含 query）作为接口标识，才能区分不同数据接口
+                if is_php_backend:
+                    api_path = url
                 type_name = self._guess_data_type(api_path)
                 if type_name and type_name not in data_apis:
                     # 从响应中自动识别数据路径和总数字段
@@ -1611,14 +1620,21 @@ class Sniffer:
         return {"success": True, "count": len(data_apis), "apis": list(data_apis.keys()),
                 "total_requests": len(self._requests), "skipped": skipped}
 
-    def _guess_data_type(self, path):
-        pl = path.lower()
-        if any(kw in pl for kw in ['user','player','member','account']): return "玩家账号"
-        if any(kw in pl for kw in ['role','character']): return "角色列表"
-        if any(kw in pl for kw in ['recharge','pay','order','charge']): return "充值记录"
-        if any(kw in pl for kw in ['game','product']): return "游戏列表"
+    def _guess_data_type(self, url):
+        # 兼容 PHP 后台（ThinkPHP 风格 index.php?g=&m=&a=）：接口靠 query 区分，
+        # 因此把 path + query 一起用于关键词判断，避免只看 path 导致全部无法识别
+        try:
+            from urllib.parse import urlparse
+            parsed = urlparse(url)
+            pl = (parsed.path + '?' + parsed.query).lower()
+        except Exception:
+            pl = url.lower()
+        if any(kw in pl for kw in ['user','player','member','account','memberlist','users']): return "玩家账号"
+        if any(kw in pl for kw in ['role','character','roles','rol']): return "角色列表"
+        if any(kw in pl for kw in ['recharge','pay','order','charge','payment','recharges']): return "充值记录"
+        if any(kw in pl for kw in ['game','product','games']): return "游戏列表"
         if any(kw in pl for kw in ['income','revenue','earn','profit']): return "收入统计"
-        if any(kw in pl for kw in ['list','page','query','search']): return "数据列表"
+        if any(kw in pl for kw in ['list','page','query','search','index']): return "数据列表"
         return None
 
     def generate_vendor(self):
@@ -1639,21 +1655,32 @@ class Sniffer:
             if v["name"] == self._vendor_name:
                 existing = v
                 break
+        # 若本次未识别到数据接口且该厂商已有配置，保留原有 data_apis，避免把已有接口配置清空
+        save_data_apis = self._data_apis
+        if existing and not save_data_apis:
+            save_data_apis = existing.get("data_apis") or {}
         login_config = self._login_config.copy()
         if existing:
             storage.update_vendor(existing["id"], name=self._vendor_name, login_url=self._login_url,
                 api_base_url=self._api_base, login_config=json.dumps(login_config, ensure_ascii=False),
-                data_apis=json.dumps(self._data_apis, ensure_ascii=False), remark="自动抓包生成")
+                data_apis=json.dumps(save_data_apis, ensure_ascii=False), remark="自动抓包生成")
             vid = existing["id"]
             action = "更新"
         else:
             vid = storage.add_vendor(name=self._vendor_name, login_url=self._login_url,
                 api_base_url=self._api_base, login_config=json.dumps(login_config, ensure_ascii=False),
-                data_apis=json.dumps(self._data_apis, ensure_ascii=False), remark="自动抓包生成")
+                data_apis=json.dumps(save_data_apis, ensure_ascii=False), remark="自动抓包生成")
             action = "添加"
         self._status = "done"
-        self._status_msg = f"厂商配置已{action}！ID={vid}，可在厂商管理中查看和修改"
-        return {"success": True, "id": vid, "action": action}
+        api_count = len(save_data_apis)
+        warning = ""
+        if api_count == 0:
+            warning = "未识别到数据接口，仅保存了登录配置；请重新抓包并在各数据页面停留片刻，或在厂商管理中手动补充数据接口配置"
+            self._status_msg = f"厂商配置已{action}！ID={vid}，但未识别到数据接口（需手动补充）"
+        else:
+            self._status_msg = f"厂商配置已{action}！ID={vid}，识别到{api_count}个数据接口，可在厂商管理中查看和修改"
+        return {"success": True, "id": vid, "action": action,
+                "data_api_count": api_count, "warning": warning}
 
     def get_status(self):
         with self._lock:

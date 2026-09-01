@@ -721,8 +721,14 @@ async function snifferGenerate() {
 
   const r = await api('/api/sniffer/generate', 'POST');
   if (r.success) {
-    appendLog('厂商配置已' + r.action + '！ID=' + r.id);
-    capResult.innerHTML += '<div class="alert alert-success"><b>厂商配置已' + r.action + '！</b> ID=' + r.id + '，可在"厂商管理"中查看和修改。</div>';
+    const cnt = r.data_api_count || 0;
+    appendLog('厂商配置已' + r.action + '！ID=' + r.id + (cnt ? '，识别到 ' + cnt + ' 个数据接口' : '，但未识别到数据接口'));
+    if (cnt > 0) {
+      capResult.innerHTML += '<div class="alert alert-success"><b>厂商配置已' + r.action + '！</b> ID=' + r.id + '，识别到 ' + cnt + ' 个数据接口，可在"厂商管理"中查看和修改。</div>';
+    } else {
+      capResult.innerHTML += '<div class="alert alert-warning"><b>⚠ 厂商配置已保存（ID=' + r.id + '），但未识别到数据接口！</b><br>已保存登录配置；请点击"捕获数据接口"重试（确认登录后在各数据页面停留片刻），或直接在"厂商管理"中手动补充"数据接口配置"JSON。</div>';
+      if (r.warning) appendLog('警告：' + r.warning);
+    }
     loadVendors();
   } else {
     appendLog('生成失败: ' + r.error);
